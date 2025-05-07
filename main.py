@@ -1,28 +1,28 @@
-import json
-import random
-import requests
-from telegram import Bot
-from telegram.ext import CommandHandler, Updater
-
-# === CONFIG ===
 import os
+import requests
+import telegram
 
-TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
-CHAT_ID = os.getenv("CHAT_ID")
+# Get Telegram Token and Chat ID from environment variables
+TELEGRAM_TOKEN = os.getenv('TELEGRAM_TOKEN')
+CHAT_ID = os.getenv('CHAT_ID')
+
+# Check if token and chat_id are set
+if not TELEGRAM_TOKEN or not CHAT_ID:
+    raise ValueError("TELEGRAM_TOKEN or CHAT_ID is not set!")
+
+# Telegram bot setup
+bot = telegram.Bot(token=TELEGRAM_TOKEN)
+
+# API URL for fetching posts
 API_URL = 'https://tierschutz-skandale.de/wp-json/wp/v2/posts?_embed'
-CACHE_FILE = 'latest_post.json'
 
-# === FUNKTIONEN ===
-
+# Function to fetch posts from the API
 def get_posts(per_page=5, page=1):
     url = f'{API_URL}&per_page={per_page}&page={page}'
-    headers = {
-    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'
-            }
-    res = requests.get(url, headers=headers)
+    res = requests.get(url)
 
     try:
-        res.raise_for_status()
+        res.raise_for_status()  # Will raise an error for non-200 status codes
         return res.json()
     except requests.exceptions.HTTPError as e:
         print(f"HTTP Error: {res.status_code} – {res.text}")
@@ -31,59 +31,27 @@ def get_posts(per_page=5, page=1):
         print(f"JSON Error: {res.text}")
         raise
 
-def get_latest_post_id():
+# Function to send a Telegram message
+def send_telegram_message(bot, message):
     try:
-        with open(CACHE_FILE, 'r') as f:
-            return json.load(f).get("last_id", 0)
-    except FileNotFoundError:
-        return 0
+        bot.send_message(chat_id=CHAT_ID, text=message, parse_mode="HTML", disable_web_page_preview=False)
+        print("Message sent.")
+    except Exception as e:
+        print(f"Telegram error: {e}")
 
-def save_latest_post_id(post_id):
-    with open(CACHE_FILE, 'w') as f:
-        json.dump({"last_id": post_id}, f)
-
-def send_new_posts(bot):
+# Main function to fetch posts and send messages
+def send_new_posts():
     posts = get_posts(per_page=5)
+
     if not posts:
+        print("No posts found.")
         return
 
-    last_id = get_latest_post_id()
-    newest_post_id = posts[0]['id']
-
-    if last_id == 0:
-        # Erstlauf: Nur speichern, nichts senden
-        save_latest_post_id(newest_post_id)
-        print("Erstlauf: Nur ID gespeichert.")
-        return
-
-    new_posts = [p for p in posts if p['id'] > last_id]
-
-    if new_posts:
-        for post in reversed(new_posts):
-            msg = f"*{post['title']['rendered']}*\n{post['link']}"
-            bot.send_message(chat_id=CHAT_ID, text=msg, parse_mode='Markdown')
-        save_latest_post_id(new_posts[0]['id'])
-
-def random_post(update, context):
-    page = random.randint(1, 20)
-    posts = get_posts(per_page=1, page=page)
-    if posts:
-        post = posts[0]
-        msg = f"*{post['title']['rendered']}*\n{post['link']}"
-        context.bot.send_message(chat_id=update.effective_chat.id, text=msg, parse_mode='Markdown')
-    else:
-        context.bot.send_message(chat_id=update.effective_chat.id, text="Kein Beitrag gefunden.")
-
-# === BOT SETUP ===
-
-def main():
-    updater = Updater(TELEGRAM_TOKEN)
-    dp = updater.dispatcher
-
-    dp.add_handler(CommandHandler("zufall", random_post))
-
-    updater.start_polling()
-    updater.idle()
+    for post in posts:
+        title = post.get('title', {}).get('rendered', 'No title')
+        link = post.get('link', 'No link')
+        message = f"New post: <b>{title}</b>\n{link}"
+        send_telegram_message(bot, message)
 
 if __name__ == "__main__":
-    main()
+    send_new_posts()
