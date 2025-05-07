@@ -18,8 +18,12 @@ API_URL = 'https://tierschutz-skandale.de/wp-json/wp/v2/posts?_embed'
 
 # Function to fetch posts from the API
 def get_posts(per_page=5, page=1):
-    url = f'{API_URL}&per_page={per_page}&page={page}'
-    res = requests.get(url)
+    url = "https://tierschutz-skandale.de/wp-json/wp/v2/posts?_embed&per_page=2"
+    headers = {"User-Agent": "Mozilla/5.0"}  # important for some servers
+
+    res = requests.get(url, headers=headers)
+    print(f"Status: {res.status_code}")
+    print(res.text)
 
     try:
         res.raise_for_status()  # Will raise an error for non-200 status codes
