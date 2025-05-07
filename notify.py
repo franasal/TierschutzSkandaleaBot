@@ -38,10 +38,11 @@ def get_posts(per_page=5, page=1):
 # Function to send a Telegram message
 def send_telegram_message(message):
     try:
-        bot.send_message(chat_id=CHAT_ID, text=message, parse_mode="HTML", disable_web_page_preview=False)
-        print("Message sent.")
+        response = bot.send_message(chat_id=CHAT_ID, text=message, parse_mode="HTML", disable_web_page_preview=False)
+        print(f"Message sent: {response}")
     except Exception as e:
         print(f"Telegram error: {e}")
+        print(CHAT_ID)
 
 # Main function to fetch posts and send messages
 def send_new_posts():
