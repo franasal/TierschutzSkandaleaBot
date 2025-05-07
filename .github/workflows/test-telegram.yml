@@ -20,17 +20,17 @@ jobs:
 
       - name: Send test message
         run: |
-          python -c "
+          python -c '
 import os
 import telegram
 
-token = os.getenv('TELEGRAM_TOKEN')
-chat_id = os.getenv('CHAT_ID')
+token = os.getenv("TELEGRAM_TOKEN")
+chat_id = os.getenv("CHAT_ID")
 
 if not token or not chat_id:
-    raise Exception('TELEGRAM_TOKEN or CHAT_ID not set.')
+    raise Exception("TELEGRAM_TOKEN or CHAT_ID not set.")
 
 bot = telegram.Bot(token=token)
-bot.send_message(chat_id=chat_id, text='Test message from GitHub Actions bot')
-print('✅ Message sent.')
-"
+bot.send_message(chat_id=chat_id, text="Test message from GitHub Actions bot")
+print("✅ Message sent.")
+'
