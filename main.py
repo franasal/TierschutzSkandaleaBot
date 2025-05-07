@@ -5,8 +5,10 @@ from telegram import Bot
 from telegram.ext import CommandHandler, Updater
 
 # === CONFIG ===
-TELEGRAM_TOKEN = 'YOUR_TELEGRAM_BOT_TOKEN'
-CHAT_ID = 'YOUR_CHAT_ID'  # Gruppen-ID oder persönlicher Chat
+import os
+
+TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
+CHAT_ID = os.getenv("CHAT_ID")
 API_URL = 'https://tierschutz-skandale.de/wp-json/wp/v2/posts?_embed'
 CACHE_FILE = 'latest_post.json'
 
@@ -15,7 +17,16 @@ CACHE_FILE = 'latest_post.json'
 def get_posts(per_page=5, page=1):
     url = f'{API_URL}&per_page={per_page}&page={page}'
     res = requests.get(url)
-    return res.json()
+
+    try:
+        res.raise_for_status()
+        return res.json()
+    except requests.exceptions.HTTPError as e:
+        print(f"HTTP Error: {res.status_code} – {res.text}")
+        raise
+    except requests.exceptions.JSONDecodeError as e:
+        print(f"JSON Error: {res.text}")
+        raise
 
 def get_latest_post_id():
     try:
