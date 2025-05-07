@@ -17,6 +17,10 @@ CACHE_FILE = 'latest_post.json'
 def get_posts(per_page=5, page=1):
     url = f'{API_URL}&per_page={per_page}&page={page}'
     res = requests.get(url)
+    headers = {
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'
+            }
+    res = requests.get(url, headers=headers)
 
     try:
         res.raise_for_status()
