@@ -3,7 +3,7 @@ import requests
 
 # Get Telegram Token and Chat ID from environment variables
 TELEGRAM_TOKEN = os.getenv('TELEGRAM_TOKEN')
-CHAT_ID = os.getenv('TELEGRAM_CHAT_ID')
+CHAT_ID = os.getenv('CHAT_ID')
 
 print(TELEGRAM_TOKEN, CHAT_ID)
 # Check if token and chat_id are set
