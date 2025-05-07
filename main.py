@@ -15,8 +15,7 @@ CACHE_FILE = 'latest_post.json'
 # === FUNKTIONEN ===
 
 def get_posts(per_page=5, page=1):
-    url = f'{API_URL}&per_page={per_page}&page={page}'
-    res = requests.get(url)
+    url = f'{API_URL}&per_page={per_page}&page={page}
     headers = {
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'
             }
