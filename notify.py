@@ -5,6 +5,7 @@ import requests
 TELEGRAM_TOKEN = os.getenv('TELEGRAM_TOKEN')
 CHAT_ID = os.getenv('TELEGRAM_CHAT_ID')
 
+print(TELEGRAM_TOKEN, CHAT_ID)
 # Check if token and chat_id are set
 if not TELEGRAM_TOKEN or not CHAT_ID:
     raise ValueError("TELEGRAM_TOKEN or CHAT_ID is not set!")
