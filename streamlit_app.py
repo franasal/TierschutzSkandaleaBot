@@ -1,60 +1,63 @@
-import streamlit as st
 import requests
+import streamlit as st
 
-# Telegram bot token and API URL
+# Get token and chat ID from Streamlit secrets or fallback placeholders
 TELEGRAM_BOT_TOKEN = st.secrets.get("telegram_bot_token", "YOUR_TELEGRAM_BOT_TOKEN")
+TELEGRAM_CHAT_ID = st.secrets.get("telegram_chat_id", "YOUR_TELEGRAM_CHAT_ID")
 BASE_URL = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}"
 
-st.title("Tierschutz-Skandale Telegram Bot Control")
+API_URL = 'https://tierschutz-skandale.de/wp-json/wp/v2/posts?_embed'
 
-# Session state for storing last update_id to avoid repeats
-if "last_update_id" not in st.session_state:
-    st.session_state.last_update_id = 0
-
-# Fetch latest messages
-def fetch_messages():
-    url = f"{BASE_URL}/getUpdates?offset={st.session_state.last_update_id + 1}"
-    res = requests.get(url)
-    if res.status_code != 200:
-        st.error("Failed to fetch updates")
+def get_posts(per_page=5):
+    url = f"https://tierschutz-skandale.de/wp-json/wp/v2/posts?_embed&per_page={per_page}"
+    headers = {"User-Agent": "Mozilla/5.0"}
+    try:
+        res = requests.get(url, headers=headers)
+        res.raise_for_status()
+        return res.json()
+    except Exception as e:
+        st.error(f"Failed to fetch posts: {e}")
         return []
-    data = res.json()
-    messages = []
-    for result in data.get("result", []):
-        update_id = result["update_id"]
-        message = result.get("message")
-        if message:
-            chat_id = message["chat"]["id"]
-            text = message.get("text", "")
-            username = message["chat"].get("username", "unknown")
-            messages.append({
-                "update_id": update_id,
-                "chat_id": chat_id,
-                "username": username,
-                "text": text,
-            })
-            st.session_state.last_update_id = update_id
-    return messages
 
-# Reply to a Telegram user
-def send_reply(chat_id, text):
+def send_telegram_message(text, chat_id):
     url = f"{BASE_URL}/sendMessage"
-    payload = {"chat_id": chat_id, "text": text}
-    res = requests.post(url, json=payload)
-    return res.ok
+    data = {
+        "chat_id": chat_id,
+        "text": text,
+        "parse_mode": "HTML",
+        "disable_web_page_preview": False
+    }
+    try:
+        response = requests.post(url, data=data)
+        if response.status_code == 200:
+            return True, response.json()
+        else:
+            return False, response.text
+    except Exception as e:
+        return False, str(e)
 
-st.subheader("Fetch new Telegram messages")
-if st.button("Fetch Messages"):
-    new_messages = fetch_messages()
-    if not new_messages:
-        st.info("No new messages.")
+st.title("Tierschutz Skandale Bot")
+
+st.header("Latest Posts")
+posts = get_posts()
+
+for post in posts:
+    title = post.get('title', {}).get('rendered', 'No title')
+    link = post.get('link', 'No link')
+    st.markdown(f"**{title}**  \n{link}")
+
+st.header("Send Telegram Message")
+
+message = st.text_area("Message to send")
+
+if st.button("Send Message"):
+    if not TELEGRAM_CHAT_ID or TELEGRAM_CHAT_ID == "YOUR_TELEGRAM_CHAT_ID":
+        st.error("Telegram chat ID is missing or not set in secrets.")
+    elif not message:
+        st.error("Please enter a message.")
     else:
-        for i, msg in enumerate(new_messages):
-            st.write(f"**{msg['username']}**: {msg['text']}")
-            reply = st.text_input(f"Reply to {msg['username']}", key=f"reply_{i}")
-            if st.button(f"Send Reply {i}"):
-                if send_reply(msg["chat_id"], reply):
-                    st.success("Reply sent.")
-                else:
-                    st.error("Failed to send reply.")
-                  
+        success, result = send_telegram_message(message, TELEGRAM_CHAT_ID)
+        if success:
+            st.success("Message sent successfully!")
+        else:
+            st.error(f"Failed to send message: {result}")
